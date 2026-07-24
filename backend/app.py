@@ -49,6 +49,16 @@ app.include_router(health_router, prefix=settings.API_V1_STR)
 app.include_router(predict_router, prefix=settings.API_V1_STR)
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Trigger model loading on startup after Uvicorn binds port."""
+    try:
+        from backend.services.predictor import predictor_service
+        predictor_service._load_model()
+    except Exception as e:
+        print(f"Startup model load notification: {e}")
+
+
 @app.get("/", summary="Root Welcome Endpoint")
 async def root() -> Dict[str, Any]:
     """

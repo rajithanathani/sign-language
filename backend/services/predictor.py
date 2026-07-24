@@ -36,14 +36,13 @@ class PredictorService:
 
     def __init__(self, model_path: str = settings.MODEL_PATH):
         """
-        Initialize Predictor Service and attempt to load model artifact.
+        Initialize Predictor Service with deferred lazy model loading.
 
         Args:
             model_path (str): Path to trained .keras model file.
         """
         self.model_path = model_path
         self.model: Optional[tf.keras.Model] = None
-        self._load_model()
 
     def _load_model(self) -> None:
         """Load trained Keras model into memory."""
