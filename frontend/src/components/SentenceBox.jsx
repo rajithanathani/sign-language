@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 import { Volume2, Trash2, Delete, Space, Type } from 'lucide-react';
 
 const SentenceBox = ({ sentence, onSentenceChange }) => {
@@ -27,7 +27,7 @@ const SentenceBox = ({ sentence, onSentenceChange }) => {
 
   const handleSpace = async () => {
     try {
-      const response = await axios.post('/api/v1/sentence/space');
+      const response = await apiClient.post('/api/v1/sentence/space');
       if (response.data?.sentence !== undefined) {
         onSentenceChange(response.data.sentence);
       }
@@ -38,7 +38,7 @@ const SentenceBox = ({ sentence, onSentenceChange }) => {
 
   const handleDelete = async () => {
     try {
-      const response = await axios.post('/api/v1/sentence/delete');
+      const response = await apiClient.post('/api/v1/sentence/delete');
       if (response.data?.sentence !== undefined) {
         onSentenceChange(response.data.sentence);
       }
@@ -49,7 +49,7 @@ const SentenceBox = ({ sentence, onSentenceChange }) => {
 
   const handleClear = async () => {
     try {
-      const response = await axios.post('/api/v1/sentence/clear');
+      const response = await apiClient.post('/api/v1/sentence/clear');
       if (response.data?.sentence !== undefined) {
         onSentenceChange(response.data.sentence);
       }

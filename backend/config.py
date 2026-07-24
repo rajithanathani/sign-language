@@ -58,12 +58,14 @@ class Settings(BaseModel):
     LINE_THICKNESS: int = 4
     NODE_RADIUS: int = 5
 
-    # CORS Configuration
+    # CORS Configuration for Local & Netlify Production Deployment
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",  # Vite Dev Server
         "http://localhost:3000",  # React CRA Server
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
+        "https://sign-languagee.netlify.app",
+        "https://sign-language-1-73a4.onrender.com",
         "*"
     ]
 

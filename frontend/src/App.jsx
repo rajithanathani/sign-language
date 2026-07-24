@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from './api/apiClient';
 import Navbar from './components/Navbar';
 import WebcamFeed from './components/WebcamFeed';
 import PredictionBox from './components/PredictionBox';
@@ -7,6 +7,7 @@ import SentenceBox from './components/SentenceBox';
 
 const App = () => {
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
   const [predictionData, setPredictionData] = useState({
     letter: '',
     confidence: 0,
@@ -16,25 +17,34 @@ const App = () => {
     stability_progress: 0
   });
 
-  // Check Backend Health Endpoint on Mount
+  // Check Backend Health Endpoint on Mount and handle cold start
   useEffect(() => {
+    let isMounted = true;
     const checkBackendHealth = async () => {
       try {
-        const response = await axios.get('/api/v1/health');
-        if (response.data?.status === 'healthy') {
-          setIsConnected(true);
-        } else {
-          setIsConnected(false);
+        const response = await apiClient.get('/api/v1/health');
+        if (isMounted) {
+          if (response.data?.status === 'healthy') {
+            setIsConnected(true);
+            setIsConnecting(false);
+          } else {
+            setIsConnected(false);
+          }
         }
       } catch (error) {
-        console.warn('Backend API connection check failed:', error.message);
-        setIsConnected(false);
+        if (isMounted) {
+          console.warn('Backend API health check failed (cold start / connecting...):', error.message);
+          setIsConnected(false);
+        }
       }
     };
 
     checkBackendHealth();
     const interval = setInterval(checkBackendHealth, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handlePrediction = (data) => {
@@ -58,11 +68,21 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-brand-500 selection:text-slate-950">
       {/* Top Header Bar */}
-      <Navbar isConnected={isConnected} />
+      <Navbar isConnected={isConnected} isConnecting={isConnecting && !isConnected} />
 
       {/* Main Dashboard Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 flex flex-col gap-6">
         
+        {/* Render Cold Start Banner if connecting */}
+        {!isConnected && (
+          <div className="w-full bg-amber-950/60 border border-amber-500/40 p-3.5 rounded-xl text-amber-300 text-xs font-semibold flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+              <span>Connecting to AI Server (Render Cold Start)... Please wait ~15-30 seconds for backend initialization.</span>
+            </div>
+          </div>
+        )}
+
         {/* Main 2-Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           

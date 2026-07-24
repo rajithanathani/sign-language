@@ -1,5 +1,5 @@
 import React from 'react';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 import { Sparkles, ShieldCheck, Timer, Lock, PlusCircle } from 'lucide-react';
 
 const PredictionBox = ({ letter, confidence, handDetected, handStable, stabilityProgress, onSentenceChange }) => {
@@ -14,7 +14,7 @@ const PredictionBox = ({ letter, confidence, handDetected, handStable, stability
   const handleManualAppend = async () => {
     if (!letter) return;
     try {
-      const response = await axios.post('/api/v1/sentence/add', { letter });
+      const response = await apiClient.post('/api/v1/sentence/add', { letter });
       if (response.data?.sentence !== undefined && onSentenceChange) {
         onSentenceChange(response.data.sentence);
       }

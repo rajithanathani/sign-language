@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
 import { Camera, Play, Square, Eye } from 'lucide-react';
 
 const WebcamFeed = ({ onPrediction, isConnected }) => {
@@ -8,16 +8,19 @@ const WebcamFeed = ({ onPrediction, isConnected }) => {
   const [isStreaming, setIsStreaming] = useState(true);
   const [skeletonPreview, setSkeletonPreview] = useState(null);
   const [handDetected, setHandDetected] = useState(false);
+  const isRequestingRef = useRef(false);
 
   // Frame Capture and Prediction Callback
   const captureFrame = useCallback(async () => {
-    if (!isStreaming || !webcamRef.current) return;
+    if (!isStreaming || !webcamRef.current || isRequestingRef.current) return;
 
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
 
+    isRequestingRef.current = true;
+
     try {
-      const response = await axios.post('/api/v1/predict/base64', {
+      const response = await apiClient.post('/api/v1/predict/base64', {
         image: imageSrc
       });
 
@@ -28,7 +31,9 @@ const WebcamFeed = ({ onPrediction, isConnected }) => {
         onPrediction({ letter, confidence, sentence, hand_detected, hand_stable, stability_progress });
       }
     } catch (error) {
-      console.error('Prediction API call failed:', error);
+      console.warn('Prediction API call skipped/failed:', error?.message);
+    } finally {
+      isRequestingRef.current = false;
     }
   }, [isStreaming, onPrediction]);
 
