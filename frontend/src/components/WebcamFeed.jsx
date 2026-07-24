@@ -6,23 +6,62 @@ import { Camera, Play, Square, Eye } from 'lucide-react';
 const WebcamFeed = ({ onPrediction, isConnected }) => {
   const webcamRef = useRef(null);
   const [isStreaming, setIsStreaming] = useState(true);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const [skeletonPreview, setSkeletonPreview] = useState(null);
   const [handDetected, setHandDetected] = useState(false);
   const isRequestingRef = useRef(false);
 
+  useEffect(() => {
+    console.log('[WebcamFeed] Component Mounted. VITE_API_URL:', import.meta.env.VITE_API_URL || 'Using default Render URL');
+  }, []);
+
+  const handleUserMedia = useCallback(() => {
+    console.log('[WebcamFeed] Camera stream initialized and ready.');
+    setIsCameraReady(true);
+  }, []);
+
+  const handleUserMediaError = useCallback((error) => {
+    console.error('[WebcamFeed] Camera access error:', error);
+    setIsCameraReady(false);
+  }, []);
+
   // Frame Capture and Prediction Callback
   const captureFrame = useCallback(async () => {
-    if (!isStreaming || !webcamRef.current || isRequestingRef.current) return;
+    if (!isStreaming) {
+      return;
+    }
 
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return;
+    if (!webcamRef.current) {
+      console.warn('[WebcamFeed Trace] Skip: webcamRef.current is null');
+      return;
+    }
+
+    if (isRequestingRef.current) {
+      return; // Skip if previous request is still in flight
+    }
+
+    let imageSrc = null;
+    try {
+      imageSrc = webcamRef.current.getScreenshot();
+    } catch (err) {
+      console.warn('[WebcamFeed Trace] getScreenshot threw exception:', err);
+      return;
+    }
+
+    if (!imageSrc) {
+      console.warn('[WebcamFeed Trace] Skip: getScreenshot() returned null (camera warming up)');
+      return;
+    }
 
     isRequestingRef.current = true;
+    console.log('[WebcamFeed Trace] Executing Axios POST /api/v1/predict/base64...');
 
     try {
       const response = await apiClient.post('/api/v1/predict/base64', {
         image: imageSrc
       });
+
+      console.log('[WebcamFeed Trace] API Response Status:', response.status);
 
       if (response.data) {
         const { letter, confidence, sentence, skeleton_image, hand_detected, hand_stable, stability_progress } = response.data;
@@ -31,24 +70,27 @@ const WebcamFeed = ({ onPrediction, isConnected }) => {
         onPrediction({ letter, confidence, sentence, hand_detected, hand_stable, stability_progress });
       }
     } catch (error) {
-      console.warn('Prediction API call skipped/failed:', error?.message);
+      console.warn('[WebcamFeed Trace] Prediction API call failed:', error?.message);
     } finally {
       isRequestingRef.current = false;
     }
   }, [isStreaming, onPrediction]);
 
-  // Real-time Frame Capture Loop (Every 150ms)
+  // Real-time Frame Capture Loop (Every 200ms)
   useEffect(() => {
     let intervalId = null;
-    if (isStreaming) {
+    if (isStreaming && isCameraReady) {
+      console.log('[WebcamFeed] Starting 200ms frame capture loop...');
       intervalId = setInterval(() => {
         captureFrame();
-      }, 150);
+      }, 200);
     }
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [isStreaming, captureFrame]);
+  }, [isStreaming, isCameraReady, captureFrame]);
 
   const toggleStreaming = () => {
     setIsStreaming(!isStreaming);
@@ -97,6 +139,8 @@ const WebcamFeed = ({ onPrediction, isConnected }) => {
             <Webcam
               audio={false}
               ref={webcamRef}
+              onUserMedia={handleUserMedia}
+              onUserMediaError={handleUserMediaError}
               screenshotFormat="image/jpeg"
               videoConstraints={videoConstraints}
               className="w-full h-full object-cover transform -scale-x-100"
@@ -112,7 +156,7 @@ const WebcamFeed = ({ onPrediction, isConnected }) => {
           <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-slate-950/80 backdrop-blur-sm border border-slate-800 text-[11px] font-semibold flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${handDetected ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
             <span className={handDetected ? 'text-emerald-400' : 'text-amber-400'}>
-              {handDetected ? 'Hand Tracked' : 'Searching for Hand...'}
+              {handDetected ? 'Hand Tracked' : isCameraReady ? 'Searching for Hand...' : 'Initializing Camera...'}
             </span>
           </div>
         </div>
