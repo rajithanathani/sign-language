@@ -13,10 +13,11 @@ __pycache__/
 .coverage
 htmlcov/
 
-# Model Weights Artifacts (Large Files)
-# Note: Keep directory structure
+# Model Weights Artifacts
 models/*.keras
 models/*.h5
+!models/best_model.keras
+!models/labels.json
 !models/.gitkeep
 
 # Plots and Evaluation Logs
