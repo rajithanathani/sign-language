@@ -1,0 +1,44 @@
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Model Weights Artifacts (Large Files)
+# Note: Keep directory structure
+models/*.keras
+models/*.h5
+!models/.gitkeep
+
+# Plots and Evaluation Logs
+training/plots/*.png
+training/plots/*.csv
+training/plots/*.txt
+
+# Node / Frontend Dependencies & Builds
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment Configuration Files
+.env
+
+# Uploads & Temp Files
+backend/uploads/*
+!backend/uploads/.gitkeep
