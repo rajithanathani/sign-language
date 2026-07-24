@@ -100,6 +100,7 @@ async def predict_base64_image(payload: Base64PredictRequest) -> PredictionRespo
     try:
         image = decode_base64_image(payload.image)
     except Exception as e:
+        print(f"[Backend Error] Failed to decode Base64 image: {str(e)}")
         raise HTTPException(status_code=400, detail=f"{ERR_INVALID_IMAGE} Details: {str(e)}")
 
     return process_frame_and_predict(image)
@@ -111,7 +112,10 @@ def process_frame_and_predict(image) -> PredictionResponse:
     Webcam Image -> Hand Landmark Detection -> Skeleton Synthesis -> Tensor Preprocessing -> CNN Prediction
     Returns letter and confidence percentage instantly on every frame, buffering when stable.
     """
-    # 1. Hand Landmark Detection
+    if image is None or image.size == 0:
+        print("[Backend Warning] Received empty image matrix")
+
+    # 1. Hand Landmark Detection with Logging
     landmarks, bbox, is_stable, progress_pct = hand_detector_service.detect_hand_landmarks_with_stability(
         image, required_stability_sec=1.5
     )
@@ -139,7 +143,9 @@ def process_frame_and_predict(image) -> PredictionResponse:
     # 4. Neural Network Forward Pass Prediction (Instant per-frame execution)
     try:
         predicted_letter, confidence, _ = predictor_service.predict(tensor, landmarks=landmarks)
+        print(f"[Backend Prediction] Letter='{predicted_letter}', Confidence={confidence}%, Hand Stable={is_stable}")
     except Exception as e:
+        print(f"[Backend Error] Inference Engine Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Inference Engine Error: {str(e)}")
 
     # 5. Buffer Prediction into Sentence Builder when hand is stable and confidence is high
