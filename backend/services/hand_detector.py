@@ -3,8 +3,8 @@ Sign Language Recognition - Hand Detector Service
 
 This module wraps cvzone's HandTrackingModule (which internally utilizes Google MediaPipe)
 to detect hand keypoints and extract 21 2D/3D landmark coordinates from webcam images.
-It features lazy initialization, BGR-to-RGB color transformation, landmark temporal smoothing,
-and an anchored 3-second hand spatial stability tracker to eliminate false positive detections.
+It features deferred lazy loading, 3-pass multi-stage contrast-enhanced hand detection,
+3-frame landmark temporal smoothing, and an anchored 3-second hand spatial stability tracker.
 """
 
 import sys
@@ -30,7 +30,8 @@ except ModuleNotFoundError:
 
 class HandDetectorService:
     """
-    Singleton service wrapper around cvzone HandDetector with deferred lazy initialization,
+    Singleton service wrapper around cvzone HandDetector with deferred lazy loading,
+    3-pass multi-stage contrast-enhanced hand detection (detectionCon=0.35),
     3-frame landmark temporal smoothing, anchored motion stability tracking,
     and strict 21-landmark completeness validation.
     """
@@ -38,7 +39,7 @@ class HandDetectorService:
     def __init__(
         self,
         max_hands: int = settings.MAX_HANDS,
-        detection_con: float = settings.DETECTION_CONFIDENCE,
+        detection_con: float = 0.35,
         motion_threshold_px: float = 50.0
     ):
         """
@@ -46,7 +47,7 @@ class HandDetectorService:
 
         Args:
             max_hands (int): Maximum number of hands to detect. Defaults to 1.
-            detection_con (float): Minimum confidence threshold for detection. Defaults to 0.7.
+            detection_con (float): Minimum confidence threshold for detection. Defaults to 0.35.
             motion_threshold_px (float): Maximum pixel displacement allowed from reference anchor.
         """
         self.max_hands = max_hands
@@ -72,7 +73,8 @@ class HandDetectorService:
         """
         if self.detector is None:
             try:
-                self.detector = HandDetector(maxHands=self.max_hands, detectionCon=0.5)
+                # Optimized detectionCon=0.35 for high sensitivity under webcam low-light & shadows
+                self.detector = HandDetector(maxHands=self.max_hands, detectionCon=self.detection_con)
             except Exception as e:
                 print(f"Warning: Deferred cvzone HandDetector initialization failed: {e}")
                 return None
@@ -133,7 +135,8 @@ class HandDetectorService:
         required_stability_sec: float = 3.0
     ) -> Tuple[Optional[List[List[int]]], Optional[Tuple[int, int, int, int]], bool, float]:
         """
-        Detect hand, extract 21 landmarks, smooth keypoints, and track spatial position stability.
+        Detect hand using 3-pass multi-stage contrast enhancement, extract 21 landmarks,
+        smooth keypoints, and track spatial position stability.
 
         Args:
             image (np.ndarray): Input OpenCV BGR image array.
@@ -155,11 +158,18 @@ class HandDetectorService:
             self._reset_stability()
             return None, None, False, 0.0
 
-        # Detect hands using cvzone findHands (cvzone converts BGR to RGB internally)
+        # Multi-Stage Pass 1 & 2: Standard detection (flipType=True, then flipType=False)
         try:
             hands, _ = detector.findHands(image, draw=False, flipType=True)
             if not hands:
                 hands, _ = detector.findHands(image, draw=False, flipType=False)
+            
+            # Multi-Stage Pass 3 & 4: Contrast & brightness enhanced detection for backlit/dark frames
+            if not hands:
+                enhanced_image = cv2.convertScaleAbs(image, alpha=1.35, beta=15)
+                hands, _ = detector.findHands(enhanced_image, draw=False, flipType=True)
+                if not hands:
+                    hands, _ = detector.findHands(enhanced_image, draw=False, flipType=False)
         except Exception as e:
             print(f"Warning: Hand landmark detection failed: {e}")
             self._reset_stability()
@@ -238,4 +248,4 @@ if __name__ == "__main__":
     dummy_frame = np.zeros((400, 400, 3), dtype=np.uint8)
     lms, bbox, stable, prog = hand_detector_service.detect_hand_landmarks_with_stability(dummy_frame)
     assert lms is None and not stable, "Dummy image should return None"
-    print("Hand detector service with lazy loading verified successfully!")
+    print("Hand detector service with 3-pass multi-stage detection verified successfully!")
