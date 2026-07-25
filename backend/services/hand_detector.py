@@ -158,6 +158,8 @@ class HandDetectorService:
         # Detect hands using cvzone findHands (cvzone converts BGR to RGB internally)
         try:
             hands, _ = detector.findHands(image, draw=False, flipType=True)
+            if not hands:
+                hands, _ = detector.findHands(image, draw=False, flipType=False)
         except Exception as e:
             print(f"Warning: Hand landmark detection failed: {e}")
             self._reset_stability()
