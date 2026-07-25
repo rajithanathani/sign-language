@@ -1,5 +1,5 @@
 import React from 'react';
-import apiClient from '../api/apiClient';
+import API from '../services/api';
 import { Sparkles, ShieldCheck, Timer, Lock, PlusCircle } from 'lucide-react';
 
 const PredictionBox = ({ letter, confidence, handDetected, handStable, stabilityProgress, onSentenceChange }) => {
@@ -14,12 +14,13 @@ const PredictionBox = ({ letter, confidence, handDetected, handStable, stability
   const handleManualAppend = async () => {
     if (!letter) return;
     try {
-      const response = await apiClient.post('/api/v1/sentence/add', { letter });
+      console.log(`[PredictionBox] Manually appending letter '${letter}' via API.post('/api/v1/sentence/add')...`);
+      const response = await API.post('/api/v1/sentence/add', { letter });
       if (response.data?.sentence !== undefined && onSentenceChange) {
         onSentenceChange(response.data.sentence);
       }
     } catch (err) {
-      console.error('Failed to append letter manually:', err);
+      console.error('[PredictionBox] Failed to append letter manually:', err?.message, err?.response?.data);
     }
   };
 

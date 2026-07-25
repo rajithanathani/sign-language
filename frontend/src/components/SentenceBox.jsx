@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import apiClient from '../api/apiClient';
+import API from '../services/api';
 import { Volume2, Trash2, Delete, Space, Type } from 'lucide-react';
 
 const SentenceBox = ({ sentence, onSentenceChange }) => {
@@ -27,34 +27,37 @@ const SentenceBox = ({ sentence, onSentenceChange }) => {
 
   const handleSpace = async () => {
     try {
-      const response = await apiClient.post('/api/v1/sentence/space');
+      console.log('[SentenceBox] Appending space via API.post("/api/v1/sentence/space")...');
+      const response = await API.post('/api/v1/sentence/space');
       if (response.data?.sentence !== undefined) {
         onSentenceChange(response.data.sentence);
       }
     } catch (err) {
-      console.error('Failed to append space:', err);
+      console.error('[SentenceBox] Failed to append space:', err?.message, err?.response?.data);
     }
   };
 
   const handleDelete = async () => {
     try {
-      const response = await apiClient.post('/api/v1/sentence/delete');
+      console.log('[SentenceBox] Deleting character via API.post("/api/v1/sentence/delete")...');
+      const response = await API.post('/api/v1/sentence/delete');
       if (response.data?.sentence !== undefined) {
         onSentenceChange(response.data.sentence);
       }
     } catch (err) {
-      console.error('Failed to delete character:', err);
+      console.error('[SentenceBox] Failed to delete character:', err?.message, err?.response?.data);
     }
   };
 
   const handleClear = async () => {
     try {
-      const response = await apiClient.post('/api/v1/sentence/clear');
+      console.log('[SentenceBox] Clearing sentence via API.post("/api/v1/sentence/clear")...');
+      const response = await API.post('/api/v1/sentence/clear');
       if (response.data?.sentence !== undefined) {
         onSentenceChange(response.data.sentence);
       }
     } catch (err) {
-      console.error('Failed to clear sentence:', err);
+      console.error('[SentenceBox] Failed to clear sentence:', err?.message, err?.response?.data);
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiClient from './api/apiClient';
+import API from './services/api';
 import Navbar from './components/Navbar';
 import WebcamFeed from './components/WebcamFeed';
 import PredictionBox from './components/PredictionBox';
@@ -22,18 +22,20 @@ const App = () => {
     let isMounted = true;
     const checkBackendHealth = async () => {
       try {
-        const response = await apiClient.get('/api/v1/health');
+        console.log('[App Trace] Checking backend health endpoint via API.get("/api/v1/health")...');
+        const response = await API.get('/api/v1/health');
         if (isMounted) {
           if (response.data?.status === 'healthy') {
             setIsConnected(true);
             setIsConnecting(false);
+            console.log('[App Trace] Backend connection verified: Healthy!');
           } else {
             setIsConnected(false);
           }
         }
       } catch (error) {
         if (isMounted) {
-          console.warn('Backend API health check failed (cold start / connecting...):', error.message);
+          console.warn('[App Trace] Backend health check failed (cold start / connecting...):', error.message);
           setIsConnected(false);
         }
       }

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import apiClient from '../api/apiClient';
+import API from '../services/api';
 import { Camera, Play, Square, Eye } from 'lucide-react';
 
 const WebcamFeed = ({ onPrediction, isConnected }) => {
@@ -12,85 +12,97 @@ const WebcamFeed = ({ onPrediction, isConnected }) => {
   const isRequestingRef = useRef(false);
 
   useEffect(() => {
-    console.log('[WebcamFeed] Component Mounted. VITE_API_URL:', import.meta.env.VITE_API_URL || 'Using default Render URL');
+    console.log('[Prediction Trace] Task 2 Environment Verification: VITE_API_URL =', import.meta.env.VITE_API_URL);
   }, []);
 
   const handleUserMedia = useCallback(() => {
-    console.log('[WebcamFeed] Camera stream initialized and ready.');
+    console.log('[Prediction Trace] Camera Ready event fired via react-webcam onUserMedia.');
     setIsCameraReady(true);
   }, []);
 
   const handleUserMediaError = useCallback((error) => {
-    console.error('[WebcamFeed] Camera access error:', error);
+    console.error('[Prediction Trace] Camera access error:', error);
     setIsCameraReady(false);
   }, []);
 
-  // Frame Capture and Prediction Callback
+  // Task 4 & 5: Trace Prediction Flow from Frame Capture to API Response
   const captureFrame = useCallback(async () => {
-    if (!isStreaming) {
-      return;
-    }
+    if (!isStreaming) return;
 
     if (!webcamRef.current) {
-      console.warn('[WebcamFeed Trace] Skip: webcamRef.current is null');
+      // console.warn('[Prediction Trace] Skip: webcamRef.current is null');
       return;
     }
 
     if (isRequestingRef.current) {
-      return; // Skip if previous request is still in flight
+      // Skip if previous API call is still in flight to avoid request stacking
+      return;
     }
 
     let imageSrc = null;
     try {
       imageSrc = webcamRef.current.getScreenshot();
     } catch (err) {
-      console.warn('[WebcamFeed Trace] getScreenshot threw exception:', err);
+      console.warn('[Prediction Trace] getScreenshot exception:', err);
       return;
     }
 
     if (!imageSrc) {
-      console.warn('[WebcamFeed Trace] Skip: getScreenshot() returned null (camera warming up)');
+      // Camera is still initializing or video stream not yet rendering frames
       return;
     }
 
+    console.log('[Prediction Trace] Frame Captured successfully. Base64 payload length:', imageSrc.length);
+    console.log('[Prediction Trace] Preparing Payload and Sending Request to /api/v1/predict/base64...');
+
     isRequestingRef.current = true;
-    console.log('[WebcamFeed Trace] Executing Axios POST /api/v1/predict/base64...');
 
     try {
-      const response = await apiClient.post('/api/v1/predict/base64', {
+      const response = await API.post('/api/v1/predict/base64', {
         image: imageSrc
       });
 
-      console.log('[WebcamFeed Trace] API Response Status:', response.status);
+      console.log('[Prediction Trace] Backend Response Received:', response.status, response.data);
 
       if (response.data) {
         const { letter, confidence, sentence, skeleton_image, hand_detected, hand_stable, stability_progress } = response.data;
+        
+        console.log(`[Prediction Trace] Hand Detected: ${hand_detected}, Hand Stable: ${hand_stable}`);
+        if (hand_detected) {
+          console.log(`[Prediction Trace] Skeleton Generated: preview present=${Boolean(skeleton_image)}`);
+          console.log(`[Prediction Trace] Prediction Received: Letter = '${letter}', Confidence = ${confidence}%`);
+          console.log(`[Prediction Trace] Buffered Sentence Updated: "${sentence}"`);
+        }
+
         setSkeletonPreview(skeleton_image);
         setHandDetected(hand_detected);
         onPrediction({ letter, confidence, sentence, hand_detected, hand_stable, stability_progress });
       }
     } catch (error) {
-      console.warn('[WebcamFeed Trace] Prediction API call failed:', error?.message);
+      console.error('[Prediction Trace] Prediction Request Failed:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack
+      });
     } finally {
       isRequestingRef.current = false;
     }
   }, [isStreaming, onPrediction]);
 
-  // Real-time Frame Capture Loop (Every 200ms)
+  // Real-time Frame Capture Loop (Runs every 200ms when streaming)
   useEffect(() => {
     let intervalId = null;
-    if (isStreaming && isCameraReady) {
-      console.log('[WebcamFeed] Starting 200ms frame capture loop...');
+    if (isStreaming) {
+      console.log('[Prediction Trace] Starting frame capture loop (every 200ms)...');
       intervalId = setInterval(() => {
         captureFrame();
       }, 200);
     }
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [isStreaming, isCameraReady, captureFrame]);
+  }, [isStreaming, captureFrame]);
 
   const toggleStreaming = () => {
     setIsStreaming(!isStreaming);
