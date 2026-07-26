@@ -13,14 +13,15 @@ import math
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 
-# Ensure project root is in sys.path
-project_root = str(Path(__file__).resolve().parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Ensure project root and backend directory are in sys.path
+project_root = Path(__file__).resolve().parent.parent.parent
+backend_dir = Path(__file__).resolve().parent.parent
+for p in [str(project_root), str(backend_dir)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 import cv2
 import numpy as np
-from cvzone.HandTrackingModule import HandDetector
 
 try:
     from backend.config import settings
@@ -55,7 +56,7 @@ class HandDetectorService:
         self.motion_threshold_px = motion_threshold_px
 
         # Deferred lazy initialization of cvzone HandDetector to prevent startup crash
-        self.detector: Optional[HandDetector] = None
+        self.detector: Any = None
 
         # Spatial stability state trackers with reference anchor
         self.reference_centroid: Optional[Tuple[float, float]] = None
@@ -64,7 +65,7 @@ class HandDetectorService:
         # Temporal landmark smoothing queue (stores 21 landmark coordinate frames)
         self.lm_history: List[List[List[int]]] = []
 
-    def get_detector(self) -> Optional[HandDetector]:
+    def get_detector(self) -> Any:
         """
         Safely retrieve or lazily instantiate cvzone HandDetector instance.
 
@@ -73,6 +74,7 @@ class HandDetectorService:
         """
         if self.detector is None:
             try:
+                from cvzone.HandTrackingModule import HandDetector
                 # Optimized detectionCon=0.35 for high sensitivity under webcam low-light & shadows
                 self.detector = HandDetector(maxHands=self.max_hands, detectionCon=self.detection_con)
             except Exception as e:

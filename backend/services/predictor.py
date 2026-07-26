@@ -45,16 +45,40 @@ class PredictorService:
         self.model: Optional[tf.keras.Model] = None
 
     def _load_model(self) -> None:
-        """Load trained Keras model into memory."""
-        if Path(self.model_path).exists():
+        """Load trained Keras model into memory with multi-path resolution and serverless safety."""
+        if self.model is not None:
+            return
+
+        base_dir = settings.BASE_DIR
+        curr_dir = Path(__file__).resolve().parent
+
+        candidate_paths = [
+            Path(self.model_path),
+            base_dir / "backend" / "models" / "asl_model.keras",
+            base_dir / "models" / "best_model.keras",
+            base_dir / "models" / "asl_model.keras",
+            curr_dir.parent / "models" / "asl_model.keras",
+            curr_dir.parent.parent / "models" / "best_model.keras",
+            curr_dir.parent.parent / "backend" / "models" / "asl_model.keras",
+            Path("backend/models/asl_model.keras"),
+            Path("models/best_model.keras"),
+        ]
+
+        target_path: Optional[Path] = None
+        for p in candidate_paths:
+            if p.exists():
+                target_path = p
+                break
+
+        if target_path:
             try:
-                self.model = tf.keras.models.load_model(self.model_path)
-                print(f"Loaded sign language model successfully from: {self.model_path}")
+                self.model = tf.keras.models.load_model(str(target_path), compile=False)
+                print(f"Loaded sign language model successfully from: {target_path}")
             except Exception as e:
-                print(f"Warning: Failed to load model from {self.model_path}: {str(e)}")
+                print(f"Warning: Failed to load model from {target_path}: {str(e)}")
                 self.model = None
         else:
-            print(f"Warning: Model file not found at {self.model_path}. Predictor will run in uninitialized state.")
+            print(f"Warning: Model file not found in candidate paths. Predictor will run in lazy uninitialized state.")
 
     def is_model_loaded(self) -> bool:
         """Check if model artifact is successfully loaded in memory."""

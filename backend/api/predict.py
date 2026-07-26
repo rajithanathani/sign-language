@@ -14,10 +14,12 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-# Ensure project root is in sys.path
-project_root = str(Path(__file__).resolve().parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Ensure project root and backend directory are in sys.path
+project_root = Path(__file__).resolve().parent.parent.parent
+backend_dir = Path(__file__).resolve().parent.parent
+for p in [str(project_root), str(backend_dir)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from pydantic import BaseModel, Field

@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://sign-language-1-73a4.onrender.com/api/$1"
+      "destination": "/api/index.py"
     },
     {
       "source": "/(.*)",

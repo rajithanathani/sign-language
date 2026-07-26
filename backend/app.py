@@ -9,10 +9,12 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 
-# Ensure project root is in sys.path
-project_root = str(Path(__file__).resolve().parent.parent)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+# Ensure project root and backend directory are in sys.path
+project_root = Path(__file__).resolve().parent.parent
+backend_dir = Path(__file__).resolve().parent
+for p in [str(project_root), str(backend_dir)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,19 +46,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount API Routers
+# Mount API Routers under multiple prefix aliases to guarantee Vercel route matching
 app.include_router(health_router, prefix=settings.API_V1_STR)
 app.include_router(predict_router, prefix=settings.API_V1_STR)
+app.include_router(health_router, prefix="/v1")
+app.include_router(predict_router, prefix="/v1")
+app.include_router(health_router, prefix="")
+app.include_router(predict_router, prefix="")
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Trigger model loading on startup after Uvicorn binds port."""
+    """Trigger background model load notification on startup without blocking serverless boot."""
     try:
         from backend.services.predictor import predictor_service
         predictor_service._load_model()
     except Exception as e:
-        print(f"Startup model load notification: {e}")
+        print(f"Serverless startup notification: {e}")
 
 
 @app.get("/", summary="Root Welcome Endpoint")

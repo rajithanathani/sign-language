@@ -75,12 +75,12 @@ const App = () => {
       {/* Main Dashboard Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 flex flex-col gap-6">
         
-        {/* Render Cold Start Banner if connecting */}
+        {/* Serverless Cold Start Banner if connecting */}
         {!isConnected && (
           <div className="w-full bg-amber-950/60 border border-amber-500/40 p-3.5 rounded-xl text-amber-300 text-xs font-semibold flex items-center justify-between animate-pulse">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-              <span>Connecting to AI Server (Render Cold Start)... Please wait ~15-30 seconds for backend initialization.</span>
+              <span>Connecting to AI Server (Vercel Serverless)... Please wait ~15-30 seconds for backend initialization.</span>
             </div>
           </div>
         )}

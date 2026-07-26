@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 // Task 1: Single shared API configuration instance for all frontend requests
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://sign-language-1-73a4.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-console.log('[API Config] Initializing shared API service instance. Target Base URL:', API_BASE_URL);
+console.log('[API Config] Initializing shared API service instance. Target Base URL:', API_BASE_URL || '(Relative domain)');
 
 const API = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 25000, // 25s timeout to handle Render cold starts smoothly
+  timeout: 25000, // 25s timeout to handle serverless cold starts smoothly
   headers: {
     'Content-Type': 'application/json',
   },
