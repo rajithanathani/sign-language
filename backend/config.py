@@ -59,14 +59,15 @@ class Settings(BaseModel):
     NODE_RADIUS: int = 5
 
     # CORS Configuration for Local & Vercel Production Deployment
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:5173",  # Vite Dev Server
-        "http://localhost:3000",  # React CRA Server
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "https://sign-language-blond.vercel.app",
-        "*"
-    ]
+    CORS_ORIGINS: List[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:5173",  # Vite Dev Server
+            "http://localhost:3000",  # React CRA Server
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+            os.getenv("FRONTEND_URL", "https://sign-language-blond.vercel.app").rstrip("/")
+        ]
+    )
 
 
 # Instantiate Singleton Settings Object
