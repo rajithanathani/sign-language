@@ -28,6 +28,7 @@ class Settings(BaseModel):
     """
     Application Settings Model backed by Pydantic schema validation.
     """
+    BASE_DIR: Path = BASE_DIR
     APP_NAME: str = Field(default_factory=lambda: os.getenv("APP_NAME", "Sign Language Alphabet Recognition API"))
     VERSION: str = Field(default_factory=lambda: os.getenv("VERSION", "1.0.0"))
     API_V1_STR: str = "/api/v1"
